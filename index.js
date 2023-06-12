@@ -111,6 +111,9 @@ async function run() {
       res.send(result);
     });
 
+
+
+
     app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -138,14 +141,69 @@ async function run() {
 
     // add a class related api
 
+    app.get("/classes", async(req,res)=>{
+      const result = await classCollection.find().toArray();
+      res.send(result)
+    })
+
     app.post('/classes', verifyJwt, async (req, res) => {
       const classes = req.body;
       const result = await classCollection.insertOne(classes);
       res.send(result);
 
-      // my class related api
 
-      
+
+
+      // my class related api
+      app.get('/myClass', verifyJwt, async (req, res) => {
+        try {
+            const email = req.query.email;
+            const query = { instructorEmail: email };
+            const user = await classCollection.find(query).toArray();
+            res.send(user);
+        } catch (error) {
+            console.error(error);
+            res.status(500).send('Internal Server Error');
+        }
+
+
+      //   app.patch('/classes', async (req, res) => {
+      //     const id = req.query.id;
+      //     const filter = { _id: new ObjectId(id) };
+      //     const status = req.query.status;
+      //     let updatedDoc = {};
+      //     if (status === 'approved') {
+      //         updatedDoc = {
+      //             $set: {
+      //                 status: 'approved'
+      //             }
+      //         }
+      //     }
+
+      //     const result = await classCollection.updateOne(filter, updatedDoc);
+      //     res.send(result);
+      // })
+
+      app.patch("/classes/:id", async(req,res)=>{
+        const id=req.query.id;
+        const filter= {_id: new ObjectId(id)}
+        
+        const updatedDoc={
+          $set:{
+            status:"approved"
+          }
+        }
+
+        const result = await classCollection.updateOne(filter, updatedDoc);
+           res.send(result);
+
+        
+      })
+
+    });
+
+
+
   })
     
 
