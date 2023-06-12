@@ -3,7 +3,7 @@ const app = express();
 const cors= require('cors');
 const jwt = require("jsonwebtoken");
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
 
@@ -51,16 +51,102 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const instructorsCollection=client.db('musicDB').collection('instructors')
+    const classCollection=client.db('musicDB').collection('classes')
     const userCollection = client.db("musicDB").collection("users");
 
     // instructors related api
 
-    app.get("/instructors", async(req,res)=>{
-        const result=await instructorsCollection.find().toArray();
-        res.send(result)
+    // app.get("/instructors", async(req,res)=>{
+    //     const result=await instructorsCollection.find().toArray();
+    //     res.send(result)
 
-    })
+    // })
+
+
+
+    app.get("/users", verifyJwt, async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role === "admin") {
+        res.send({ admin: true });
+      } else {
+        res.send({ admin: false });
+      }
+    });
+    app.get("/users/instructor/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role === "instructor") {
+        res.send({ instructor: true });
+      } else {
+        res.send({ instructor: false });
+      }
+    });
+
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const query = { email: user.email };
+      const existUser = await userCollection.findOne(query);
+      console.log(existUser);
+      if (existUser) {
+        return res.send({ massage: "user is exist" });
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.patch("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    app.patch("/users/instructor/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: "instructor",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+
+    // add a class related api
+
+    app.post('/classes', verifyJwt, async (req, res) => {
+      const classes = req.body;
+      const result = await classCollection.insertOne(classes);
+      res.send(result);
+
+      // my class related api
+
+      
+  })
     
 
     // Send a ping to confirm a successful connection
