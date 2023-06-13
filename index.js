@@ -54,13 +54,6 @@ async function run() {
     const classCollection=client.db('musicDB').collection('classes')
     const userCollection = client.db("musicDB").collection("users");
 
-    // instructors related api
-
-    // app.get("/instructors", async(req,res)=>{
-    //     const result=await instructorsCollection.find().toArray();
-    //     res.send(result)
-
-    // })
 
 
 
