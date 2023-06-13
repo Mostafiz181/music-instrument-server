@@ -64,7 +64,7 @@ async function run() {
 
 
 
-    app.get("/users", verifyJwt, async (req, res) => {
+    app.get("/users",  async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
@@ -79,6 +79,8 @@ async function run() {
         res.send({ admin: false });
       }
     });
+
+
     app.get("/users/instructor/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -112,6 +114,9 @@ async function run() {
     });
 
 
+   
+
+
 
 
     app.patch("/users/admin/:id", async (req, res) => {
@@ -138,6 +143,8 @@ async function run() {
       res.send(result);
     });
 
+  
+
 
     // add a class related api
 
@@ -151,9 +158,12 @@ async function run() {
       const result = await classCollection.insertOne(classes);
       res.send(result);
 
+    });
 
-
-
+    app.get("/approvedClass", async(req,res)=>{
+      const result = await classCollection.find({status:"approved"}).toArray();
+      res.send(result)
+    })
       // my class related api
       app.get('/myClass', verifyJwt, async (req, res) => {
         try {
@@ -165,29 +175,11 @@ async function run() {
             console.error(error);
             res.status(500).send('Internal Server Error');
         }
+    });
 
-
-      //   app.patch('/classes', async (req, res) => {
-      //     const id = req.query.id;
-      //     const filter = { _id: new ObjectId(id) };
-      //     const status = req.query.status;
-      //     let updatedDoc = {};
-      //     if (status === 'approved') {
-      //         updatedDoc = {
-      //             $set: {
-      //                 status: 'approved'
-      //             }
-      //         }
-      //     }
-
-      //     const result = await classCollection.updateOne(filter, updatedDoc);
-      //     res.send(result);
-      // })
-
-      app.patch("/classes/:id", async(req,res)=>{
-        const id=req.query.id;
+     app.patch("/classes/:id", async(req,res)=>{
+        const id=req.params.id;
         const filter= {_id: new ObjectId(id)}
-        
         const updatedDoc={
           $set:{
             status:"approved"
@@ -195,16 +187,14 @@ async function run() {
         }
 
         const result = await classCollection.updateOne(filter, updatedDoc);
-           res.send(result);
+         res.send(result);
 
         
-      })
+      });
 
-    });
+      
 
 
-
-  })
     
 
     // Send a ping to confirm a successful connection
