@@ -53,6 +53,7 @@ async function run() {
 
     const classCollection=client.db('musicDB').collection('classes')
     const userCollection = client.db("musicDB").collection("users");
+    const selectClassCollection=client.db('musicDB').collection('select')
 
 
 
@@ -105,11 +106,6 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-
-
-   
-
-
 
 
     app.patch("/users/admin/:id", async (req, res) => {
@@ -184,6 +180,19 @@ async function run() {
 
         
       });
+
+      // selected class related api
+
+      app.get("/selectedClass", async(req,res)=>{
+        const result=await selectClassCollection.find().toArray();
+        res.send(result)
+      })
+
+      app.post('/selectedClass', async (req, res) =>{
+        const classes = req.body;
+        const result = await selectClassCollection.insertOne(classes);
+        res.send(result);
+    })
 
       
 
