@@ -187,23 +187,21 @@ async function run() {
       // selected class related api
 
       app.get("/selectedClass", async(req,res)=>{
-        const result=await selectClassCollection.find().toArray();
+        const email = req.query.email;
+        const query = { email: email };
+        const result=await selectClassCollection.find(query).toArray();
         res.send(result)
       })
 
 
-      app.get('/selected', verifyJwt, async (req, res) => {
+      app.get('/selected',verifyJwt, async (req, res) => {
         const email = req.query.email;
         if (!email) {
             res.send([])
         }
-        // jwt.........
-        const decodedEmail = req.decoded.email;
-        if (email !== decodedEmail) {
-            return res.status(403).send({ error: true, message: 'forbidden Access' })
-        }
-        // jwt.........
+
         const query = { email: email };
+        
         const result = await selectClassCollection.find(query).toArray();
         res.send(result);
     })
@@ -228,9 +226,24 @@ async function run() {
       res.send(result)
   })
 
+  app.post('/create-payment-intent', verifyJwt, async (req, res) => {
+    const { price } = req.body;
+    const amount = parseInt(price * 100);
+    const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+    });
+
+    res.send({
+        clientSecret: paymentIntent.client_secret
+    })
+})
 
 
-    app.post('/payments', verifyJwt, async (req, res) => {
+
+
+    app.post('/payments', async (req, res) => {
       const payment = req.body;
       const insertResult = await paymentCollection.insertOne(payment);
 
@@ -238,7 +251,7 @@ async function run() {
       const deleteResult = await selectClassCollection.deleteOne(query);
 
       // Update the seat count for each selected class
-      const filter = { _id: new ObjectId(payment.enrolledClass) };
+      const filter = { _id: new ObjectId(payment?.enrolledClass) };
       const options = {
           projection: {
               _id: 0,
@@ -251,8 +264,9 @@ async function run() {
           },
       };
 
-      const enrolled = await classCollection.findOne(filter, options);
-      enrolled.email = payment.email
+      const enrolled = await classCollection.findOne(filter,options);
+      enrolled.email = payment?.email
+      console.log(enrolled,payment.email)
       const enrolledResult = await enrollCollection.insertOne(enrolled)
 
       const totalUpdateSeats = {
@@ -265,17 +279,14 @@ async function run() {
           totalUpdateSeats
       );
 
-      res.send({ insertResult, deleteResult, updateSeats, enrolledResult });
+     
+  
+
+      res.send({ insertResult, deleteResult ,enrolledResult, updateSeats,  });
   });
 
 
 
-
-
-      
-
-
-    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
