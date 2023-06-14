@@ -77,6 +77,20 @@ async function run() {
       }
     });
 
+    // popular class related api
+
+    app.get('/popularClass', async (req, res) => {
+      const result = await classCollection.find({ status: "approved" }).sort({ totalStudent: -1 }).limit(6).toArray();
+      res.send(result);
+  })
+
+
+    // instructor related api
+    app.get('/instructors', async (req, res) => {
+      const result = await userCollection.find({ role: 'instructor' }).toArray();
+      res.send(result);
+  })
+
 
     app.get("/users/instructor/:email", async (req, res) => {
       const email = req.params.email;
@@ -278,12 +292,17 @@ async function run() {
           filter,
           totalUpdateSeats
       );
-
-     
-  
-
       res.send({ insertResult, deleteResult ,enrolledResult, updateSeats,  });
   });
+
+
+
+  //enroll related api
+
+  app.get("/enrollClass", async(req,res)=>{
+    const result=await enrollCollection.find().toArray()
+    res.send(result);
+  })
 
 
 
