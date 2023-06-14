@@ -3,6 +3,7 @@ const app = express();
 const cors= require('cors');
 const jwt = require("jsonwebtoken");
 require('dotenv').config()
+const stripe=require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
@@ -54,6 +55,8 @@ async function run() {
     const classCollection=client.db('musicDB').collection('classes')
     const userCollection = client.db("musicDB").collection("users");
     const selectClassCollection=client.db('musicDB').collection('select')
+    const paymentCollection=client.db("musicDB").collection('payment')
+    const enrollCollection=client.db('musicDB').collection('enroll')
 
 
 
@@ -188,11 +191,86 @@ async function run() {
         res.send(result)
       })
 
+
+      app.get('/selected', verifyJwt, async (req, res) => {
+        const email = req.query.email;
+        if (!email) {
+            res.send([])
+        }
+        // jwt.........
+        const decodedEmail = req.decoded.email;
+        if (email !== decodedEmail) {
+            return res.status(403).send({ error: true, message: 'forbidden Access' })
+        }
+        // jwt.........
+        const query = { email: email };
+        const result = await selectClassCollection.find(query).toArray();
+        res.send(result);
+    })
+
       app.post('/selectedClass', async (req, res) =>{
         const classes = req.body;
         const result = await selectClassCollection.insertOne(classes);
         res.send(result);
     })
+
+
+    app.patch('/totalStudent/:id', async (req, res) =>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const enrollClass = await classCollection.findOne(filter)
+      const totalStudent ={
+          $set:{
+              totalStudent: enrollClass.totalStudent +1
+          }
+      }
+      const result = await classCollection.updateOne(filter, totalStudent);
+      res.send(result)
+  })
+
+
+
+    app.post('/payments', verifyJwt, async (req, res) => {
+      const payment = req.body;
+      const insertResult = await paymentCollection.insertOne(payment);
+
+      const query = { _id: new ObjectId(payment.selectedClass) };
+      const deleteResult = await selectClassCollection.deleteOne(query);
+
+      // Update the seat count for each selected class
+      const filter = { _id: new ObjectId(payment.enrolledClass) };
+      const options = {
+          projection: {
+              _id: 0,
+              className: 1,
+              classImage: 1,
+              instructorEmail: 1,
+              instructorName: 1,
+              price: 1,
+              seats: 1,
+          },
+      };
+
+      const enrolled = await classCollection.findOne(filter, options);
+      enrolled.email = payment.email
+      const enrolledResult = await enrollCollection.insertOne(enrolled)
+
+      const totalUpdateSeats = {
+          $set: {
+              seats: enrolled.seats - 1,
+          },
+      };
+      const updateSeats = await classCollection.updateOne(
+          filter,
+          totalUpdateSeats
+      );
+
+      res.send({ insertResult, deleteResult, updateSeats, enrolledResult });
+  });
+
+
+
+
 
       
 
